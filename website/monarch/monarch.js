@@ -84,14 +84,6 @@ function readSamples(sampleSelect) {
 
 		var languageId = 'monarch-language-' + id;
 
-		// monaco.languages.register({ id: languageId });
-
-		// var langModel = monaco.editor.createModel(getTextFromId(id), 'javascript');
-		// var update = function() {
-		// 	console.log()
-		// };
-		// langModel.onDidChangeContent(update);
-
 		var sampleText = getTextFromId(id + "-sample");
 
 		samples[id] = {
@@ -136,7 +128,7 @@ require(["vs/editor/editor.main"], function () {
 	var currentTheme = "vs";
 	select.onchange = function () {
 		currentTheme = select.options[select.selectedIndex].value;
-		sampleEditor.updateOptions({ theme: currentTheme });
+		monaco.editor.setTheme(currentTheme);
 	};
 
 	// on resize

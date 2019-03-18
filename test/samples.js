@@ -1,39 +1,40 @@
 /// <reference path="../node_modules/monaco-editor-core/monaco.d.ts" />
 
-define([], function() {
+define(['./samples-all.generated'], function (ALL_SAMPLES) {
+
+	var XHR_SAMPLES = {};
+	ALL_SAMPLES.forEach(function (sample) {
+		XHR_SAMPLES[sample.name] = sample.content;
+	});
 
 	var samples = [];
 
-	var modesIds = monaco.languages.getLanguages().map(function(language) { return language.id; });
+	var modesIds = monaco.languages.getLanguages().map(function (language) { return language.id; });
 	modesIds.sort();
 
-	modesIds.forEach(function(modeId) {
+	modesIds.forEach(function (modeId) {
 		samples.push({
 			name: 'sample - ' + modeId,
 			mimeType: modeId,
-			loadText: function() {
-				return xhr('samples/sample.' + modeId + '.txt').then(function(xhrResponse) {
-					return xhrResponse.responseText;
-				});
+			loadText: function () {
+				return Promise.resolve(XHR_SAMPLES['sample.' + modeId + '.txt']);
 			}
 		});
 	});
 
 	function addXHRSample(name, modelUrl, mimeType, textModifier) {
-		textModifier = textModifier || function(text) { return text; };
+		textModifier = textModifier || function (text) { return text; };
 		samples.push({
 			name: name,
 			mimeType: mimeType,
-			loadText: function() {
-				return xhr('samples/' + modelUrl).then(function(xhrResponse) {
-					return textModifier(xhrResponse.responseText);
-				});
+			loadText: function () {
+				return Promise.resolve(XHR_SAMPLES[modelUrl]).then(textModifier);
 			}
 		});
 	}
 
 	function addStringPowerXHRSample(name, modelUrl, mimeType, power) {
-		addXHRSample(name, modelUrl, mimeType, function(text) {
+		addXHRSample(name, modelUrl, mimeType, function (text) {
 			var result = text;
 			for (var i = 0; i < power; ++i) {
 				result += "\n" + result;
@@ -46,8 +47,8 @@ define([], function() {
 		samples.push({
 			name: name,
 			mimeType: mimeType,
-			loadText: function() {
-				return monaco.Promise.as(modelText);
+			loadText: function () {
+				return Promise.resolve(modelText);
 			}
 		});
 	}
@@ -64,7 +65,8 @@ define([], function() {
 
 	addXHRSample('Z___jquery-min.js', 'run-editor-jquery-min-js.txt', 'text/javascript');
 
-	addXHRSample('Z___scrolling-strategy.js', 'run-editor-sample-js.txt', 'text/plain', function(text) {
+	addXHRSample('Z___scrolling-strategy.js', 'run-editor-sample-js.txt', 'text/plain', function (text) {
+		console.log('here I am');
 		var lines = text.split('\n');
 		var newLines = lines.slice(0);
 
@@ -96,7 +98,7 @@ define([], function() {
 		'\uDBFF\uDFFF'
 	].join('\n'));
 
-	addSample('Z___easy-debug.js', 'text/plain', (function() {
+	addSample('Z___easy-debug.js', 'text/plain', (function () {
 		var myValue = "Line1";
 		for (var i = 2; i < 50; i++) {
 			myValue += "\nLine" + i;
@@ -104,7 +106,7 @@ define([], function() {
 		return myValue;
 	})());
 
-	addSample('Z___copy-paste.txt', 'text/plain', (function() {
+	addSample('Z___copy-paste.txt', 'text/plain', (function () {
 		var i = 0, sampleCopyPasteLine = '';
 		while (sampleCopyPasteLine.length < 1000) {
 			i++;
@@ -117,7 +119,7 @@ define([], function() {
 		return sampleCopyPaste;
 	})());
 
-	addSample('Z___xss', 'text/html', (function() {
+	addSample('Z___xss', 'text/html', (function () {
 		var xssRepresentations = [
 			'<',
 			'BAD\u2028CHARACTER',
@@ -194,7 +196,7 @@ define([], function() {
 		return xssRepresentations.length + ':\n' + xssRepresentations.join('\n');
 	})());
 
-	addSample('Z___many-links.js', 'text/javascript', (function() {
+	addSample('Z___many-links.js', 'text/javascript', (function () {
 		var result = "bla bla a url: https://microsoft.com some more bla bla";
 		for (var i = 0; i < 13; ++i) {
 			result += "\n" + result;
@@ -202,7 +204,7 @@ define([], function() {
 		return "/*" + result + "\n*/";
 	})());
 
-	addSample('Z___line-separators.js', 'text/javascript', (function() {
+	addSample('Z___line-separators.js', 'text/javascript', (function () {
 		return [
 			"var x = '1'; // And\u2028 here I have a nice comment.",
 			"",
@@ -214,7 +216,7 @@ define([], function() {
 
 	addXHRSample('Z___intellisense.js', 'run-editor-intellisense-js.txt', 'text/javascript');
 
-	addSample('Z___recursion attack', 'text/html', (function() {
+	addSample('Z___recursion attack', 'text/html', (function () {
 		var arr = [];
 		for (var i = 0; i < 10000; i++) {
 			arr.push('\n<script type="text/html">');
@@ -236,36 +238,7 @@ define([], function() {
 		}
 	});
 
-	addXHRSample('Z___f12___css','run-editor-sample-f12-css.txt','text/css');
+	addXHRSample('Z___f12___css', 'run-editor-sample-f12-css.txt', 'text/css');
 
 	return samples;
-
-	function xhr(url) {
-		var req = null;
-		return new monaco.Promise(function(c,e,p) {
-			req = new XMLHttpRequest();
-			req.onreadystatechange = function () {
-				if (req._canceled) { return; }
-
-				if (req.readyState === 4) {
-					if ((req.status >= 200 && req.status < 300) || req.status === 1223) {
-						c(req);
-					} else {
-						e(req);
-					}
-					req.onreadystatechange = function () { };
-				} else {
-					p(req);
-				}
-			};
-
-			req.open("GET", url, true );
-			req.responseType = "";
-
-			req.send(null);
-		}, function () {
-			req._canceled = true;
-			req.abort();
-		});
-	}
 });
